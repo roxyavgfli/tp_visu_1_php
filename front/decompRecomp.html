@@ -25,6 +25,7 @@
             <input type="submit" name="submit" value="Envoyer" />
         </form>
 
+        <div id = "error"></div>
         <div id = "tabReconstruct"></div>
 
         <script src="js/chart.js"></script>
@@ -49,14 +50,17 @@
                     processData: false,
 
                     success: function(data){
-                        console.log(data);
+                        //console.log(JSON.parse(data));
                         var obj = JSON.parse(data);
+                        console.log(obj);
+
+                        $('#error').html("erreur quadratique : " + obj[1]);
 
                         var data_graph_data = [];
                         var data_graph_labels = [];
 
-                        for (var i = 0; i < obj.length; i++) {
-                            data_graph_data.push(obj[i]);
+                        for (var i = 0; i < obj[0].length; i++) {
+                            data_graph_data.push(obj[0][i]);
                             data_graph_labels.push(i);
                         }
 

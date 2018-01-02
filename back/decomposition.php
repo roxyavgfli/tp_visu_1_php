@@ -10,19 +10,35 @@ require_once 'fileUtils.php';
 
 Class Decomposition {
 
+    private $data_origin;
+    private $data_final;
     private $x = Array();
     private $y = Array();
     private $details;
     private $resolution;
     private $iterations = 0;
+    private $error = 0;
 
     function __construct(Array $dataArray, $details, $resolution) {
+        $this->data_origin = $dataArray;
         $this->details = $details;
-        error_log("details : " + $this->details);
+        //error_log("details : " + $this->details);
         //print_r($this->details);
         $this->resolution = $resolution;
         //$this->data_array = $dataArray;
         $this->x = $dataArray;
+    }
+
+    public function getError(){
+        return $this->error;
+    }
+
+    public function quadError(){
+        $error = 0;
+        for($i=0; $i < sizeof($this->data_final); $i++){
+            $error = $error + (($this->data_origin[$i] - $this->data_final[$i]) * ($this->data_origin[$i] - $this->data_final[$i]));
+        }
+        $this->error = $error;
     }
 
     public function getDetails() {
@@ -35,31 +51,28 @@ Class Decomposition {
 
     public function decompose_step() {
         $new_x = Array();
+        $sub_y = Array();
         for ($i = 0; $i < sizeof($this->x)/2; $i++){
             array_push($new_x, ($this->x[2*$i] + $this->x[2*$i+1])/2);
-            if (abs($this->x[2*$i] - $new_x[$i]) < $this->details){
-                array_unshift($this->y, $this->x[2*$i] - $new_x[$i]);
+            if ($this->details == null || abs($this->x[2*$i] - $new_x[$i]) > $this->details){
+                array_push($sub_y, $this->x[2*$i] - $new_x[$i]);
             }else{
-                error_log("skipped");
-                array_unshift($this->y, 0);
+                //error_log("skipped");
+                array_push($sub_y, 0);
             }
         }
         $this->x = $new_x;
+        array_unshift($this->y, $sub_y);
         $this->iterations++;
     }
 
-    public function recompose_step() {
+    public function recompose_step($increment) {
         $new_x = Array();
-        for($i = 0; $i < sizeof($this->x); $i++){
-            if ($this->resolution > 0){
-                $new_x[$i * 2] = $this->x[$i] + $this->y[$i];
-                $new_x[$i * 2 + 1] = $this->x[$i] - $this->y[$i];
-                array_shift($this->y);
-                $this->x = $new_x;
-                $this->resolution --;
-            }
+        for ($i = 0; $i < sizeof($this->y[$increment]); $i++) {
+            $new_x[2*$i]= $this->x[$i]+$this->y[$increment][$i];
+            $new_x[2*$i+1]= $this->x[$i]-$this->y[$increment][$i];
         }
-
+        $this->x=$new_x;
     }
 
     public function decompose_full() {
@@ -69,8 +82,8 @@ Class Decomposition {
     }
 
     public function recompose_full() {
-        while (sizeof($this->x) > 0 && $this->resolution > 0){
-            $this->recompose_step();
+        for ($i = 0; $i < sizeof($this->y) && $i < $this->resolution; $i++){
+            $this->recompose_step($i);
         }
     }
 
@@ -114,6 +127,22 @@ Class Decomposition {
         $this->y = $y;
     }
 
+    /**
+     * @return mixed
+     */
+    public function getDataFinal()
+    {
+        return $this->data_final;
+    }
+
+    /**
+     * @param mixed $data_final
+     */
+    public function setDataFinal($data_final): void
+    {
+        $this->data_final = $data_final;
+    }
+
 }
 
 $details = null;
@@ -134,7 +163,7 @@ $decomp = new Decomposition($dataArray, $details, $resolution);
 
 $decomp->decompose_full();
 
-
+//print_r($decomp);
 
 
 //$decomp->recompose_step();
@@ -142,7 +171,18 @@ $decomp->decompose_full();
 //print_r($decomp);
 $decomp->recompose_full();
 
-echo json_encode($decomp->getX());
+$decomp->setDataFinal($decomp->getX());
+$decomp->quadError();
+
+
+
+//print_r($decomp);
+
+$to_send = Array();
+array_push($to_send, $decomp->getDataFinal());
+array_push($to_send, $decomp->getError());
+
+echo json_encode($to_send);
 
 
 

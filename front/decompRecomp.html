@@ -1,0 +1,168 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Décomposition Recomposition</title>
+
+    </head>
+    <body>
+
+        <h1> Données d'origine</h1>
+        <div id = "tabOrigine">
+            <form method="POST" id="send" action="../back/reception.php" enctype="multipart/form-data">
+                <input type="file" name="file" id="file">
+                <input type="submit" name="submit" value="Envoyer" />
+            </form>
+        </div>
+        <div id="ajax_message_send">
+        </div>
+        <h1> Données reconstruites </h1>
+
+        <form method="POST" id="decompRecomp" action="../back/decomposition.php" enctype="multipart/form-data">
+            <label >détails à partir du quel la valeur est ignorée</label>
+            <input type="number" step="0.00000001" name="details" id="details">
+            <label >Résolution souhaitée</label>
+            <input type="number" name="resolution" id="resolution">
+            <input type="submit" name="submit" value="Envoyer" />
+        </form>
+
+        <div id = "tabReconstruct"></div>
+
+        <script src="js/chart.js"></script>
+        <script src="./js/jquery-3.2.1.min.js"></script>
+        <script>
+
+            $('#decompRecomp').on('submit', function(e){
+
+                e.preventDefault()
+                var detail = $('#details').prop('value');
+                var resolution = $('#resolution').prop('value');
+                var form_data = new FormData();
+                form_data.append('resolution', resolution);
+                form_data.append('detail', detail);
+
+                $.ajax({
+                    url: '../back/decomposition.php',
+                    dataType: 'text',
+                    method: 'POST',
+                    data: form_data,
+                    contentType: false,
+                    processData: false,
+
+                    success: function(data){
+                        console.log(data);
+                        var obj = JSON.parse(data);
+
+                        var data_graph_data = [];
+                        var data_graph_labels = [];
+
+                        for (var i = 0; i < obj.length; i++) {
+                            data_graph_data.push(obj[i]);
+                            data_graph_labels.push(i);
+                        }
+
+                        $('#tabReconstruct').html('<canvas id="chartJSContainer2" width="800px" height="400px"></canvas>');
+
+                        var options = {
+                            type: 'line',
+                            data: {
+                                labels: data_graph_labels,
+                                datasets: [
+                                    {
+                                        label: 'values',
+                                        data: data_graph_data,
+                                        borderWidth: 1,
+                                        //scaleOverride:true,
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    xAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'X'
+                                        }
+                                    }]
+                                }
+                            }
+
+                        }
+
+                        var ctx = document.getElementById('chartJSContainer2').getContext('2d');
+                        new Chart(ctx, options);
+                    }
+
+                })
+
+            })
+
+            $('#send').on('submit', function(e) {
+
+                var file_data = $('#file').prop('files')[0];
+                e.preventDefault();
+                var form_data = new FormData();
+                form_data.append('file', file_data);
+
+                $.ajax({
+                    url: '../back/reception.php',
+                    dataType: 'text',  // what to expect back from the PHP script, if anything
+                    method: 'POST',
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    data: form_data,
+                    success: function(data){
+
+
+
+                        var data_array = JSON.parse(data);
+                        var data_graph_data = [];
+                        var data_graph_labels = [];
+
+                        for (var i = 0; i < data_array.length; i++) {
+                            data_graph_data.push(data_array[i]);
+                            data_graph_labels.push(i);
+                        }
+
+                        $('#ajax_message_send').html('<canvas id="chartJSContainer" width="800px" height="400px"></canvas>');
+
+                        var options = {
+                            type: 'line',
+                            data: {
+                                labels: data_graph_labels,
+                                datasets: [
+                                    {
+                                        label: 'values',
+                                        data: data_graph_data,
+                                        borderWidth: 1,
+                                        //scaleOverride:true,
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    xAxes: [{
+                                        display: true,
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'X'
+                                        }
+                                    }]
+                                }
+                            }
+
+                        }
+
+                        var ctx = document.getElementById('chartJSContainer').getContext('2d');
+                        new Chart(ctx, options);
+
+                    }
+                });
+            })
+        </script>
+
+    </body>
+</html>
